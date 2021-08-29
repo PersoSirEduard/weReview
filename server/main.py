@@ -1,10 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import engine
+from sqlalchemy.orm import scoped_session, sessionmaker
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 import os
 
 # Init web app
 app = Flask(__name__)
+sess = scoped_session(sessionmaker(bind=engine))
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Init database
@@ -20,14 +23,14 @@ reviewers = db.Table('reviewers',
 )
 
 # Reviewer class
-
+list_len = 1000
 class Reviewer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     gender = db.Column(db.String(60), nullable=False)
-    area_expertise = db.Column(db.PickleType(), nullable=False) # Holds array
-    research_expertise = db.Column(db.PickleType(), nullable=False) # Holds array
-    area_research = db.Column(db.PickleType(), nullable=False) # Holds array
+    area_expertise = db.Column(db.String(list_len), nullable=False) # Holds array
+    research_expertise = db.Column(db.String(list_len), nullable=False) # Holds array
+    area_research = db.Column(db.String(list_len), nullable=False) # Holds array
     
     def __init__(self, name, gender, area_expertise, research_expertise, area_research):
         self.name = name
@@ -87,14 +90,15 @@ class ApplicationSchema(SQLAlchemyAutoSchema):
         include_relationships=True
         load_instance=True
 
-def crud_post(content,SchemaClass):
-    schema = SchemaClass()
-    data = schema.load(content)
-    return jsonify(data.create())
+def crud_post(content,ModelSchema):
+    schema = ModelSchema()
+    data = schema.load(content,session=sess)
+    return jsonify(schema.dump(data.create()))
 
-def crud_get(id,ModelClass,SchemaClass):
+def crud_get(id,ModelClass,ModelSchema):
     get_data = ModelClass.query.get(id)
-    schema = SchemaClass()
+    schema = ModelSchema()
+    import ipdb; ipdb.set_trace()
     application = schema.dump(get_data)
     return jsonify(application)
 
@@ -102,7 +106,7 @@ def crud_update(id,changes,ModelClass,ModelSchema):
     clean_changes = {key:val for key,val in changes.items() if key != 'id'}
     get_data = ModelClass.query.get(id)
     schema = ModelSchema()
-    new_data = schema.load({**schema.dump(get_data),**clean_changes})
+    new_data = schema.load({**schema.dump(get_data),**clean_changes},session=sess)
     #trust, it won't add a new entry, since id is same, only update :)
     new_data.create()
     return jsonify(schema.dump(new_data))
@@ -112,6 +116,10 @@ def crud_delete(id,ModelClass):
     db.session.delete(data)
     db.session.commit()
     return make_response("",204)
+
+def crud_get_all(ModelClass,ModelSchema):
+    schema = ModelSchema()
+    return jsonify(schema.dump(ModelClass.query.all()))
 
 class CRUD:
     def __init__(self,ModelClass,ModelSchema,route):
@@ -128,16 +136,19 @@ class CRUD:
 
         @app.route(self.route,methods=["POST"],endpoint=f'{self.route}-post')
         def post():
-            return crud_post(request.json,self.SchemaClass)
+            return crud_post(request.json,self.ModelSchema)
 
         @app.route(id_route,methods=['PUT'],endpoint=f'{self.route}-put')
         def put(id):
-            changes = request.json
-            return crud_update(id, changes, self.ModelClass, self.ModelSchema)
+            return crud_update(id, request.json, self.ModelClass, self.ModelSchema)
 
         @app.route(id_route,methods=['DELETE'],endpoint=f'{self.route}-delete')
         def delete(id):
             return crud_delete(id, self.ModelClass)
+
+        @app.route(self.route,methods=['GET'],endpoint=f'{self.route}-gets')
+        def get_all():
+            return crud_get_all(self.ModelClass,self.ModelSchema)
 
 
 
@@ -150,6 +161,7 @@ def home():
 if __name__ == "__main__":
 
     # Setup database
+    
     db.create_all()
     application_crud = CRUD(Application, ApplicationSchema, '/application')
     reviewer_crud = CRUD(Reviewer,ReviewerSchema,'/reviewer')
