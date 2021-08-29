@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 import os
 
 # Init web app
@@ -35,6 +36,21 @@ class Reviewer(db.Model):
         self.research_expertise = research_expertise
         self.area_research = area_research
 
+    def __repr__(self):
+        return f'<Reviewer {self.name} id={self.id}>'
+
+    def create(self):
+        '''creates reviewer, and returns it as well'''
+        db.session.add(self)
+        db.session.commit()
+        return self
+
+class ReviewerSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Reviewer
+        include_relationships=True
+        load_instance=True
+
 # Application class
 
 class Application(db.Model):
@@ -59,20 +75,84 @@ class Application(db.Model):
         self.keywords = keywords
         self.reviewers = reviewers
 
+    def create(self):
+        '''creates application, and returns it as well'''
+        db.session.add(self)
+        db.session.commit()
+        return self
+
+class ApplicationSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Application
+        include_relationships=True
+        load_instance=True
+
+def crud_post(content,SchemaClass):
+    schema = SchemaClass()
+    data = schema.load(content)
+    return jsonify(data.create())
+
+def crud_get(id,ModelClass,SchemaClass):
+    get_data = ModelClass.query.get(id)
+    schema = SchemaClass()
+    application = schema.dump(get_data)
+    return jsonify(application)
+
+def crud_update(id,changes,ModelClass,ModelSchema):
+    clean_changes = {key:val for key,val in changes.items() if key != 'id'}
+    get_data = ModelClass.query.get(id)
+    schema = ModelSchema()
+    new_data = schema.load({**schema.dump(get_data),**clean_changes})
+    #trust, it won't add a new entry, since id is same, only update :)
+    new_data.create()
+    return jsonify(schema.dump(new_data))
+
+def crud_delete(id,ModelClass):
+    data = ModelClass.query.get(id)
+    db.session.delete(data)
+    db.session.commit()
+    return make_response("",204)
+
+class CRUD:
+    def __init__(self,ModelClass,ModelSchema,route):
+        self.ModelClass = ModelClass
+        self.ModelSchema = ModelSchema
+        self.route = route
+        self.add_routes()
+    def add_routes(self):
+        id_route = f'{self.route}/<id>'
+
+        @app.route(id_route,methods=["GET"],endpoint=f'{self.route}-get')
+        def get(id):
+            return crud_get(id,self.ModelClass,self.ModelSchema)
+
+        @app.route(self.route,methods=["POST"],endpoint=f'{self.route}-post')
+        def post():
+            return crud_post(request.json,self.SchemaClass)
+
+        @app.route(id_route,methods=['PUT'],endpoint=f'{self.route}-put')
+        def put(id):
+            changes = request.json
+            return crud_update(id, changes, self.ModelClass, self.ModelSchema)
+
+        @app.route(id_route,methods=['DELETE'],endpoint=f'{self.route}-delete')
+        def delete(id):
+            return crud_delete(id, self.ModelClass)
+
+
 
 # Routes
 @app.route("/", methods=["GET"])
 def home():
     return "API is up and running!"
 
-@app.route("/application/new", methods=["POST"])
-def new_application():
-    return {}
     
 if __name__ == "__main__":
 
     # Setup database
     db.create_all()
+    application_crud = CRUD(Application, ApplicationSchema, '/application')
+    reviewer_crud = CRUD(Reviewer,ReviewerSchema,'/reviewer')
 
     # Start the web server
     app.run(debug=True)
