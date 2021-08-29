@@ -1,0 +1,236 @@
+@font-face {
+    font-family: 'Poppins';
+    src: local('Poppins'), url(./fonts/Poppins-Regular.ttf) format('truetype');
+}
+
+* {
+    font-family: 'Poppins', 'sans-serif';
+    padding: 0;
+    margin: 0;
+}
+
+body {
+    background: #ecf1ff;
+    position: relative;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 15px 80px;
+    background: linear-gradient(rgba(255, 255, 255, 0.534), rgba(0, 0, 0, 0), 90deg)
+}
+
+.navItem {
+    font-size: 20px;
+    margin: 14px 40px;
+    text-decoration: none;
+    color: black;
+}
+
+.navbarLogo {
+    font-size: 30px;
+    font-weight: 600;
+}
+
+.landingPageImage {
+    margin: 71px 341px;
+}
+
+.mainInfo {
+    width: 100%;
+}
+
+.landingPageTxt {
+    text-align: center;
+    font-size: 36px;
+    font-weight: 500;
+    margin: 76px 174px;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.button {
+    padding: 15px;
+    margin: 0 40px;
+    font-size: 22px;
+    font-weight: 700;
+    border-radius: 10px;
+    color: #F4F6FB;
+    height: 65px;
+    width: 240px;
+    outline: none;
+    border: none;
+}
+
+.applyButton {
+    background: #219ebc;
+    box-shadow: 4px 0 0 5px #219ebc;
+}
+
+.adminButton {
+    background: #FFB703;
+    box-shadow: 4px 0 0 5px #FFB703;
+}
+
+.passwordInputContainer {
+    width: 100%;
+    text-align: center;
+    display: inline;
+}
+
+#passwordInput {
+    border-radius: 10px;
+    margin: 15px;
+}
+
+.applyTextContainer {
+    width: 100%;
+    text-align: center;
+}
+
+.applyHeader {
+    font-size: 36px;
+}
+
+.applyText {
+    font-size: 24px;
+    margin: 24px 40px
+}
+
+.yellowHighlight {
+    color: #ffb703;
+    font-weight: 500;
+}
+
+.applicantForm {
+    padding: 52px 84px;
+    margin: 0 60px;
+    margin-bottom: 100px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #e8e8e8 inset;
+    position: relative;
+}
+
+.applicantForm label,
+.applicantForm input {
+    display: block;
+}
+
+.applicantForm label {
+    font-size: 16px;
+}
+
+.applicantForm input,
+.applicantForm select {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    outline: none;
+    border: 1px solid #023047;
+}
+
+.applicantForm select:focus,
+.applicantForm input:focus {
+    border: 1px solid #8ECAE6;
+}
+
+.nameInput {
+    width: 100%
+}
+
+.nameInput input {
+    width: 100%;
+}
+
+.degreeInput,
+.collegeInput {
+    width: 45%;
+}
+
+.pResearchTypeSelect,
+.sResearchTypeSelect,
+.pResearchAreaSelect,
+.sResearchAreaSelect {
+    width: 35%;
+}
+
+.degreeInput input,
+.collegeInput input,
+.pResearchTypeSelect select,
+.sResearchTypeSelect select,
+.pResearchTypeSelect select,
+.pResearchAreaSelect select,
+.sResearchAreaSelect select {
+    width: 100%;
+}
+
+.applySectionOne,
+.researchType,
+.researchArea {
+    display: flex;
+    justify-content: space-between;
+}
+
+.titleInput {
+    width: 100%
+}
+
+.titleInput input {
+    width: 100%;
+}
+
+.linkInput {
+    width: 100%
+}
+
+.linkInput input {
+    width: 100%;
+}
+
+.formButtons {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.resetButton {
+    background: #fff;
+    border: 3px solid #ffb703;
+    color: #ffb703;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 25px 20px;
+    outline: none;
+    text-align: center;
+    width: 100px;
+    font-weight: 700;
+}
+
+.submitButton {
+    background-color: #ffb703;
+    outline: none;
+    text-align: center;
+    width: 100px;
+    border: 3px solid #ffb703;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 25px 20px;
+    outline: none;
+    font-weight: 700;
+}
+
+.submitButton:hover {
+    background: #fff;
+}
+
+.resetButton:hover {
+    background: #ffb703;
+    color: #fff;
+}
