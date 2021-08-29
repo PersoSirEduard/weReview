@@ -1,17 +1,18 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 import os
 
 # Init web app
 app = Flask(__name__)
-sess = scoped_session(sessionmaker(bind=engine))
 basedir = os.path.abspath(os.path.dirname(__file__))
-
+connection_path = 'sqlite:///' + os.path.join(basedir, 'db.sqlite')
 # Init database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'db.sqlite')
+app.config['SQLALCHEMY_DATABASE_URI'] = connection_path
+engine = create_engine(connection_path)
+sess = scoped_session(sessionmaker(bind=engine))
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -26,14 +27,17 @@ reviewers = db.Table('reviewers',
 list_len = 1000
 class Reviewer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
+    # name = db.Column(db.String(100), unique=True, nullable=False)
+    first_name = db.Column(db.String(60), nullable=False)
+    last_name = db.Column(db.String(60), nullable=False)
     gender = db.Column(db.String(60), nullable=False)
     area_expertise = db.Column(db.String(list_len), nullable=False) # Holds array
     research_expertise = db.Column(db.String(list_len), nullable=False) # Holds array
     area_research = db.Column(db.String(list_len), nullable=False) # Holds array
     
-    def __init__(self, name, gender, area_expertise, research_expertise, area_research):
-        self.name = name
+    def __init__(self, first_name,last_name, gender, area_expertise, research_expertise, area_research):
+        self.first_name = first_name
+        self.last_name = last_name
         self.gender = gender
         self.area_expertise = area_expertise
         self.research_expertise = research_expertise
@@ -63,8 +67,8 @@ class Application(db.Model):
     title = db.Column(db.String(60), nullable=False)
     primary_type_research = db.Column(db.String(60), nullable=False)
     secondary_type_research = db.Column(db.String(60))
-    area_research = db.Column(db.PickleType(), nullable=False) # Holds array
-    keywords = db.Column(db.PickleType(), nullable=False) # Holds array
+    area_research = db.Column(db.String(list_len), nullable=False) # Holds array
+    keywords = db.Column(db.String(list_len), nullable=False) # Holds array
     reviewers = db.relationship('Reviewer', secondary=reviewers, lazy='subquery',
         backref=db.backref('applications', lazy=True))
 
@@ -98,7 +102,6 @@ def crud_post(content,ModelSchema):
 def crud_get(id,ModelClass,ModelSchema):
     get_data = ModelClass.query.get(id)
     schema = ModelSchema()
-    import ipdb; ipdb.set_trace()
     application = schema.dump(get_data)
     return jsonify(application)
 
@@ -106,20 +109,26 @@ def crud_update(id,changes,ModelClass,ModelSchema):
     clean_changes = {key:val for key,val in changes.items() if key != 'id'}
     get_data = ModelClass.query.get(id)
     schema = ModelSchema()
-    new_data = schema.load({**schema.dump(get_data),**clean_changes},session=sess)
-    #trust, it won't add a new entry, since id is same, only update :)
-    new_data.create()
-    return jsonify(schema.dump(new_data))
+    valid_keys = {key for key in get_data.__dict__.keys() if not key.startswith("_")}
+    for key,val in clean_changes.items():
+        if key in valid_keys:
+            get_data.__setattr__(key,val)
+
+    db.session.add(get_data)
+    db.session.commit()
+    return jsonify(schema.dump(get_data))
 
 def crud_delete(id,ModelClass):
     data = ModelClass.query.get(id)
     db.session.delete(data)
     db.session.commit()
-    return make_response("",204)
+    return jsonify({"id" : id})
 
 def crud_get_all(ModelClass,ModelSchema):
     schema = ModelSchema()
-    return jsonify(schema.dump(ModelClass.query.all()))
+    all_data = ModelClass.query.all()
+    json_clean = [schema.dump(data) for data in all_data]
+    return jsonify(json_clean)
 
 class CRUD:
     def __init__(self,ModelClass,ModelSchema,route):
